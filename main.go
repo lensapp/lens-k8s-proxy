@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -16,6 +18,7 @@ import (
 func main() {
 	kubeconfig := os.Getenv("KUBECONFIG")
 	apiPrefix := os.Getenv("API_PREFIX")
+	certPath := os.Getenv("CERT_PATH")
 
 	if apiPrefix == "" {
 		apiPrefix = "/"
@@ -50,11 +53,22 @@ func main() {
 	// Separate listening from serving so we can report the bound port
 	// when it is chosen by os (eg: port == 0)
 	var l net.Listener
-	l, err = server.Listen("127.0.0.1", 0)
-	if err != nil {
-		klog.Fatal(err)
+	if certPath == "" {
+		l, err = server.Listen("127.0.0.1", 0)
+		if err != nil {
+			klog.Fatal(err)
 
-		os.Exit(1)
+			os.Exit(1)
+		}
+	} else {
+		cer, err := tls.LoadX509KeyPair(path.Join(certPath, "proxy.crt"), path.Join(certPath, "proxy.key"))
+		if err != nil {
+			klog.Fatal(err)
+
+			os.Exit(1)
+		}
+		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+		l, err = tls.Listen("tcp", "127.0.0.1:0", config)
 	}
 
 	fmt.Printf("starting to serve on %s\n", l.Addr().String())
