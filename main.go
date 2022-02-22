@@ -15,6 +15,11 @@ import (
 	"k8s.io/kubectl/pkg/proxy"
 )
 
+// Version gets overridden at build time using -X main.Version=$VERSION
+var (
+	Version = "dev"
+)
+
 func main() {
 	kubeconfig := os.Getenv("KUBECONFIG")
 	apiPrefix := os.Getenv("API_PREFIX")
@@ -28,7 +33,7 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 	signal.Notify(done, os.Interrupt, syscall.SIGKILL)
 
-	fmt.Println("~~ Lens K8s Proxy ~~")
+	fmt.Printf("~~ Lens K8s Proxy, '%s' ~~\n", Version)
 	fmt.Printf("kubeconfig: %s\n", kubeconfig)
 	fmt.Printf("api prefix: %s\n", apiPrefix)
 
