@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -18,15 +21,25 @@ func main() {
 		apiPrefix = "/"
 	}
 
-	klog.Info("~~ Lens K8s Proxy ~~")
-	klog.Info("kubeconfig: ", kubeconfig)
-	klog.Info("api prefix: ", apiPrefix)
+	done := make(chan os.Signal, 2)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(done, os.Interrupt, syscall.SIGKILL)
+
+	fmt.Println("~~ Lens K8s Proxy ~~")
+	fmt.Printf("kubeconfig: %s\n", kubeconfig)
+	fmt.Printf("api prefix: %s\n", apiPrefix)
 
 	config := genericclioptions.NewConfigFlags(false)
 	config.KubeConfig = &kubeconfig
 	clientConfig, err := config.ToRESTConfig()
 
-	server, err := proxy.NewServer("", apiPrefix, "", nil, clientConfig, 0, false)
+	if err != nil {
+		klog.Fatal("failed to initialize kubeconfig", err)
+
+		os.Exit(1)
+	}
+
+	server, err := proxy.NewServer("", apiPrefix, "", nil, clientConfig, 0, true)
 
 	if err != nil {
 		klog.Fatal("failed to initialize proxy", err)
@@ -44,7 +57,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	klog.Info("proxy listening on ", l.Addr().String())
+	fmt.Printf("starting to serve on %s\n", l.Addr().String())
 
-	server.ServeOnListener(l)
+	go func() {
+		err = server.ServeOnListener(l)
+
+		if err != nil {
+			klog.Fatal(err)
+
+			os.Exit(1)
+		}
+	}()
+
+	<-done
+
+	fmt.Println("shutting down ...")
+
+	l.Close()
+	os.Exit(0)
 }
