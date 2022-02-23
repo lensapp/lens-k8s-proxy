@@ -22,6 +22,7 @@ var (
 
 func main() {
 	kubeconfig := os.Getenv("KUBECONFIG")
+	kubeconfigContext := os.Getenv("KUBECONFIG_CONTEXT")
 	apiPrefix := os.Getenv("API_PREFIX")
 	certPath := os.Getenv("CERT_PATH")
 
@@ -39,6 +40,11 @@ func main() {
 
 	config := genericclioptions.NewConfigFlags(false)
 	config.KubeConfig = &kubeconfig
+
+	if kubeconfigContext != "" {
+		config.Context = &kubeconfigContext
+	}
+
 	clientConfig, err := config.ToRESTConfig()
 
 	if err != nil {
