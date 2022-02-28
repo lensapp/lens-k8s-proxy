@@ -23,4 +23,4 @@ jobs:
           VERSION: ${{ github.ref_name }}
       - uses: softprops/action-gh-release@v1
         with:
-          files: lens-k8s-proxy-${{ runner.os }}-${{ matrix.goarch }}
+          files: lens-k8s-proxy-${ go env GOOS }-${{ matrix.goarch }}
