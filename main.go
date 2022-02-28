@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -16,12 +17,34 @@ import (
 	"k8s.io/kubectl/pkg/proxy"
 )
 
-// Version gets overridden at build time using -X main.Version=$VERSION
+// These get overridden at build time: -X main.Version=$VERSION
 var (
-	Version = "dev"
+	Version = "0.0.1"
+	Commit  = ""
 )
 
+type VersionData struct {
+	Version string `json:"gitVersion"`
+	Commit  string `json:"gitCommit"`
+}
+
 func main() {
+	argsWithoutProg := os.Args[1:]
+
+	if len(argsWithoutProg) > 0 && argsWithoutProg[0] == "version" {
+		err := json.NewEncoder(os.Stdout).Encode(&VersionData{
+			Version: Version,
+			Commit:  Commit,
+		})
+
+		if err != nil {
+			klog.Fatal("failed to marshal version data", err)
+			os.Exit(1)
+		}
+
+		os.Exit(0)
+	}
+
 	kubeconfig := os.Getenv("KUBECONFIG")
 	kubeconfigContext := os.Getenv("KUBECONFIG_CONTEXT")
 	apiPrefix := os.Getenv("API_PREFIX")
