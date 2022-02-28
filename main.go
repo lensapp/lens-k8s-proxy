@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strings"
 	"syscall"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -26,8 +27,8 @@ func main() {
 	apiPrefix := os.Getenv("API_PREFIX")
 	certPath := os.Getenv("CERT_PATH")
 
-	if apiPrefix == "" {
-		apiPrefix = "/"
+	if !strings.HasSuffix(apiPrefix, "/") {
+		apiPrefix += "/"
 	}
 
 	done := make(chan os.Signal, 2)
