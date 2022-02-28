@@ -20,6 +20,7 @@ jobs:
       - run: make build
         env:
           GOARCH: ${{ matrix.goarch }}
+          VERSION: ${GITHUB_REF#refs/tags/}
       - uses: softprops/action-gh-release@v1
         with:
           files: lens-k8s-proxy-${{ matrix.os }}-${{ matrix.goarch }}

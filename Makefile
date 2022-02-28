@@ -1,5 +1,4 @@
 BUILD_ARCHS ?= $(shell go env GOOS)/$(shell go env GOARCH)
-VERSION ?= ${GITHUB_REF}
 OUTPUT_NAME ?= $(or ${BINARY_NAME},lens-k8s-proxy)
 OUTPUT_SUFFIX ?= $(shell go env GOOS)-$(shell go env GOARCH)
 OUTPUT_EXT ?= $(or ${BINARY_EXT},)
