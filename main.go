@@ -32,7 +32,6 @@ func main() {
 
 	done := make(chan os.Signal, 2)
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
-	signal.Notify(done, os.Interrupt, syscall.SIGKILL)
 
 	fmt.Printf("~~ Lens K8s Proxy, '%s' ~~\n", Version)
 	fmt.Printf("kubeconfig: %s\n", kubeconfig)
@@ -78,8 +77,16 @@ func main() {
 
 			os.Exit(1)
 		}
-		config := &tls.Config{Certificates: []tls.Certificate{cer}}
-		l, err = tls.Listen("tcp", "127.0.0.1:0", config)
+
+		l, err = tls.Listen("tcp", "127.0.0.1:0", &tls.Config{
+			Certificates: []tls.Certificate{cer},
+		})
+
+		if err != nil {
+			klog.Fatal("failed to start listening", err)
+
+			os.Exit(1)
+		}
 	}
 
 	fmt.Printf("starting to serve on %s\n", l.Addr().String())
