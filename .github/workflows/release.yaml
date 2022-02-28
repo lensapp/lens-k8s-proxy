@@ -10,7 +10,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15, windows-2019]
+        include:
+          - os: ubuntu-18.04
+            RUNNER_OS: linux
+          - os: macos-10.15
+            RUNNER_OS: macos
+          - os: windows-201
+            RUNNER_OS: windows
         goarch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v2
@@ -23,4 +29,4 @@ jobs:
           VERSION: ${{ github.ref_name }}
       - uses: softprops/action-gh-release@v1
         with:
-          files: lens-k8s-proxy-${{ go env GOOS }}-${{ matrix.goarch }}
+          files: lens-k8s-proxy-${{ matrix.RUNNER_OS }}-${{ matrix.goarch }}
