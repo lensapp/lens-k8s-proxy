@@ -11,7 +11,7 @@ ${OUTPUT}:
 
 ${OUTPUT}.sha256: ${OUTPUT}
 ifeq ($(OS),Windows_NT)
-	certutil.exe -hashfile "${OUTPUT}" SHA256 | findstr.exe /VRC:"[a-f 0-9]" > "${OUTPUT}.sha256"
+	certutil.exe -hashfile "${OUTPUT}" SHA256 | findstr.exe /VRC:"[:]" > "${OUTPUT}.sha256"
 else
 	shasum -a 256 "${OUTPUT}" | awk '{print $$1}' > "${OUTPUT}.sha256"
 endif
