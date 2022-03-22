@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"path"
 	"strings"
 	"syscall"
 
@@ -48,7 +47,8 @@ func main() {
 	kubeconfig := os.Getenv("KUBECONFIG")
 	kubeconfigContext := os.Getenv("KUBECONFIG_CONTEXT")
 	apiPrefix := os.Getenv("API_PREFIX")
-	certPath := os.Getenv("CERT_PATH")
+	proxyCert := os.Getenv("PROXY_CERT")
+	proxyKey := os.Getenv("PROXY_KEY")
 
 	if !strings.HasSuffix(apiPrefix, "/") {
 		apiPrefix += "/"
@@ -87,7 +87,7 @@ func main() {
 	// Separate listening from serving so we can report the bound port
 	// when it is chosen by os (eg: port == 0)
 	var l net.Listener
-	if certPath == "" {
+	if proxyCert == "" || proxyKey == "" {
 		l, err = server.Listen("127.0.0.1", 0)
 		if err != nil {
 			klog.Fatal(err)
@@ -95,7 +95,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		cer, err := tls.LoadX509KeyPair(path.Join(certPath, "proxy.crt"), path.Join(certPath, "proxy.key"))
+		cer, err := tls.LoadX509KeyPair(proxyCert, proxyKey)
 		if err != nil {
 			klog.Fatal(err)
 
