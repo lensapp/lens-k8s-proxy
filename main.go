@@ -95,7 +95,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		cer, err := tls.LoadX509KeyPair(proxyCert, proxyKey)
+		cer, err := tls.X509KeyPair([]byte(proxyCert), []byte(proxyKey))
 		if err != nil {
 			klog.Fatal(err)
 
