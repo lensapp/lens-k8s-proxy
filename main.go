@@ -84,39 +84,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Separate listening from serving so we can report the bound port
-	// when it is chosen by os (eg: port == 0)
-	var l net.Listener
-	if proxyCert == "" || proxyKey == "" {
-		l, err = server.Listen("127.0.0.1", 0)
-		if err != nil {
-			klog.Fatal(err)
+	l, err := getListener(proxyCert, proxyKey)
 
-			os.Exit(1)
-		}
-	} else {
-		cer, err := tls.X509KeyPair([]byte(proxyCert), []byte(proxyKey))
-		if err != nil {
-			klog.Fatal(err)
+	if err != nil {
+		klog.Fatal("failed to get listener", err)
 
-			os.Exit(1)
-		}
-
-		l, err = tls.Listen("tcp", "127.0.0.1:0", &tls.Config{
-			Certificates: []tls.Certificate{cer},
-		})
-
-		if err != nil {
-			klog.Fatal("failed to start listening", err)
-
-			os.Exit(1)
-		}
+		os.Exit(1)
 	}
 
 	fmt.Printf("starting to serve on %s\n", l.Addr().String())
 
 	go func() {
-		err = server.ServeOnListener(l)
+		err := server.ServeOnListener(l)
 
 		if err != nil {
 			klog.Fatal(err)
@@ -131,4 +110,23 @@ func main() {
 
 	l.Close()
 	os.Exit(0)
+}
+
+const proxyAddr = "127.0.0.1:0"
+
+func getListener(proxyCert string, proxyKey string) (net.Listener, error) {
+	if proxyCert == "" || proxyKey == "" {
+		return net.Listen("tcp", proxyAddr)
+	}
+
+	cert, err := tls.X509KeyPair([]byte(proxyCert), []byte(proxyKey))
+	if err != nil {
+		klog.Fatal(err)
+
+		os.Exit(1)
+	}
+
+	return tls.Listen("tcp", proxyAddr, &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	})
 }
