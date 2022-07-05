@@ -5,7 +5,7 @@ OUTPUT_EXT ?= $(or ${BINARY_EXT},)
 OUTPUT = ${OUTPUT_NAME}-${OUTPUT_SUFFIX}${OUTPUT_EXT}
 COMMIT = $(shell git rev-parse HEAD)
 
-${OUTPUT}:
+${OUTPUT}: main.go
 	@: $(if ${VERSION},,$(error VERSION is not set))
 	go build -ldflags="-w -X main.Version=${VERSION} -X main.Commit=${COMMIT}" -o ${OUTPUT} main.go
 
