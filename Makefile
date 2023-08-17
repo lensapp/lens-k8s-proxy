@@ -7,6 +7,7 @@ COMMIT = $(shell git rev-parse HEAD)
 
 ${OUTPUT}:
 	@: $(if ${VERSION},,$(error VERSION is not set))
+	go env
 	go build -ldflags="-w -X main.Version=${VERSION} -X main.Commit=${COMMIT}" -o ${OUTPUT} main.go
 
 ${OUTPUT}.sha256: ${OUTPUT}
