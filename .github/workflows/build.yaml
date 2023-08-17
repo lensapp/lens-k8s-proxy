@@ -29,3 +29,4 @@ jobs:
         env:
           GOARCH: ${{ matrix.goarch }}
           VERSION: ${{ github.ref_name }}
+          CGO_ENABLED: "1"
