@@ -10,10 +10,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/lensapp/lens-k8s-proxy/pkg/util/proxy"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/proxy"
 )
 
 // These get overridden at build time: -X main.Version=$VERSION
@@ -77,6 +77,8 @@ func main() {
 	}
 
 	server, err := proxy.NewServer("", apiPrefix, "", nil, clientConfig, 0, true)
+
+	fmt.Printf("server: %v\n", server)
 
 	if err != nil {
 		klog.Fatal("failed to initialize proxy", err)

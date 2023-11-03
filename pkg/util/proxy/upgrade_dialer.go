@@ -31,6 +31,7 @@ import (
 	"golang.org/x/net/proxy"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
+	"k8s.io/klog/v2"
 )
 
 // UpgradeDialer knows how to upgrade an HTTP request to one that supports
@@ -97,6 +98,16 @@ func (u *UpgradeDialer) Dial(req *http.Request) (net.Conn, error) {
 		return nil, err
 	}
 
+	// URL is
+	// "<server address>?<query>"
+	// but it should be "/api/v1/namespaces/...", fixing it:
+	url, err := url.Parse(req.RequestURI)
+
+	if err != nil {
+		return nil, err
+	}
+	req.URL = url
+
 	if err := req.Write(conn); err != nil {
 		conn.Close()
 		return nil, err
@@ -147,6 +158,7 @@ func (u *UpgradeDialer) dialWithHttpProxy(req *http.Request, proxyURL *url.URL) 
 
 	proxyDialConn, err := u.dialWithoutProxy(proxyReq.Context(), proxyURL)
 	if err != nil {
+		klog.Errorf("dialWithoutProxy error %v", err)
 		return nil, err
 	}
 
@@ -156,9 +168,11 @@ func (u *UpgradeDialer) dialWithHttpProxy(req *http.Request, proxyURL *url.URL) 
 	//nolint:staticcheck // SA1019 ignore deprecated httputil.ErrPersistEOF: it might be
 	// returned from the invocation of proxyClientConn.Do
 	if err != nil && err != httputil.ErrPersistEOF {
+		klog.Errorf("proxyClientConn.Do error %v", err)
 		return nil, err
 	}
 	if response != nil && response.StatusCode >= 300 || response.StatusCode < 200 {
+		klog.Errorf("Response wrong statusCode %v", response.StatusCode)
 		return nil, fmt.Errorf("CONNECT request to %s returned response: %s", proxyURL.Redacted(), response.Status)
 	}
 
@@ -167,6 +181,7 @@ func (u *UpgradeDialer) dialWithHttpProxy(req *http.Request, proxyURL *url.URL) 
 	if req.URL.Scheme == "https" {
 		return u.tlsConn(proxyReq.Context(), rwc, targetHost)
 	}
+
 	return rwc, nil
 }
 
@@ -221,7 +236,7 @@ func (u *UpgradeDialer) tlsConn(ctx context.Context, rwc net.Conn, targetHost st
 		return nil, err
 	}
 
-	tlsConfig := u.tlsConfig
+	tlsConfig := u.tlsConfig.Clone()
 	switch {
 	case tlsConfig == nil:
 		tlsConfig = &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
@@ -229,6 +244,7 @@ func (u *UpgradeDialer) tlsConn(ctx context.Context, rwc net.Conn, targetHost st
 		tlsConfig = tlsConfig.Clone()
 		tlsConfig.ServerName = host
 	}
+	tlsConfig.InsecureSkipVerify = true
 
 	tlsConn := tls.Client(rwc, tlsConfig)
 
@@ -256,6 +272,7 @@ func (u *UpgradeDialer) dialWithoutProxy(ctx context.Context, url *url.URL) (net
 		NetDialer: dialer,
 		Config:    u.tlsConfig,
 	}
+
 	return tlsDialer.DialContext(ctx, "tcp", dialAddr)
 }
 

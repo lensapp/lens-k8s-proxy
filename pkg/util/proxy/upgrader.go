@@ -94,8 +94,8 @@ func proxyRedirectsforRootPath(path string, w http.ResponseWriter, req *http.Req
 // ServeHTTP handles the proxy request
 //
 //nolint:gocyclo
-func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if h.tryUpgrade(w, req) {
+func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request, apiProxyPrefix string) {
+	if h.tryUpgrade(w, req, apiProxyPrefix) {
 		return
 	}
 	if h.UpgradeRequired {
@@ -104,6 +104,7 @@ func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 	}
 
 	loc := *h.Location
+	loc.Path = req.URL.Path
 	loc.RawQuery = req.URL.RawQuery
 
 	// If original request URL ended in '/', append a '/' at the end of the
@@ -192,7 +193,7 @@ func (noSuppressPanicError) Write(p []byte) (n int, err error) {
 // tryUpgrade returns true if the request was handled.
 //
 //nolint:gocyclo
-func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Request) bool {
+func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Request, apiProxyPrefix string) bool {
 	if !httpstream.IsUpgradeRequest(req) {
 		klog.V(6).Infof("Request was not an upgrade")
 		return false
@@ -218,16 +219,20 @@ func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Reques
 	// Only append X-Forwarded-For in the upgrade path, since httputil.NewSingleHostReverseProxy
 	// handles this in the non-upgrade path.
 	utilnet.AppendForwardedForHeader(clone)
-	klog.V(6).Infof("Connecting to backend proxy (direct dial) %s\n  Headers: %v", &location, clone.Header)
+
 	if h.UseLocationHost {
 		clone.Host = h.Location.Host
 	}
 	clone.URL = &location
 
-	//backendConn, err = h.DialForUpgrade(clone)
+	// Remove the apiProxyPrefix from the request URI
+	if len(apiProxyPrefix) > 1 {
+		clone.RequestURI = strings.Replace(clone.RequestURI, strings.TrimSuffix(apiProxyPrefix, "/"), "", 1)
+	}
+
 	backendConn, err = h.UpgradeDialer.Dial(clone)
 	if err != nil {
-		klog.V(6).Infof("Proxy connection error: %v", err)
+		klog.V(6).Infof("Proxy connection error on Dial: %v", err)
 		h.Responder.Error(w, req, err)
 		return true
 	}
@@ -236,7 +241,7 @@ func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Reques
 	// determine the http response code from the backend by reading from rawResponse+backendConn
 	backendHTTPResponse, headerBytes, err := getResponse(io.MultiReader(bytes.NewReader(rawResponse), backendConn))
 	if err != nil {
-		klog.V(6).Infof("Proxy connection error: %v", err)
+		klog.V(6).Infof("Proxy connection error on response: %v %v", err)
 		h.Responder.Error(w, req, err)
 		return true
 	}
