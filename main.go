@@ -38,7 +38,6 @@ func main() {
 
 		if err != nil {
 			klog.Fatal("failed to marshal version data", err)
-			os.Exit(1)
 		}
 
 		os.Exit(0)
@@ -72,24 +71,18 @@ func main() {
 
 	if err != nil {
 		klog.Fatal("failed to initialize kubeconfig", err)
-
-		os.Exit(1)
 	}
 
 	server, err := proxy.NewServer("", apiPrefix, "", nil, clientConfig, 0, true)
 
 	if err != nil {
 		klog.Fatal("failed to initialize proxy", err)
-
-		os.Exit(1)
 	}
 
 	l, err := getListener(proxyCert, proxyKey)
 
 	if err != nil {
 		klog.Fatal("failed to get listener", err)
-
-		os.Exit(1)
 	}
 
 	fmt.Printf("starting to serve on %s\n", l.Addr().String())
@@ -99,8 +92,6 @@ func main() {
 
 		if err != nil {
 			klog.Fatal(err)
-
-			os.Exit(1)
 		}
 	}()
 
@@ -122,7 +113,6 @@ func getListener(proxyCert string, proxyKey string) (net.Listener, error) {
 	cert, err := tls.X509KeyPair([]byte(proxyCert), []byte(proxyKey))
 	if err != nil {
 		klog.Fatal(err)
-		os.Exit(1)
 	}
 
 	return tls.Listen("tcp", proxyAddr, &tls.Config{
