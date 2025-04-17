@@ -11,14 +11,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04-large
+          - os: [self-hosted, global-pool, ubuntu]
             RUNNER_OS: linux
           - os: macos-14-large
             RUNNER_OS: darwin
           - os: windows-2019
             RUNNER_OS: windows
         goarch: [amd64, arm64]
-        os: [ubuntu-20.04-large, macos-14-large, windows-2019]
+        os: [[self-hosted, global-pool, ubuntu], macos-14-large, windows-2019]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
